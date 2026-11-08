@@ -129,11 +129,10 @@ namespace net
 
 			uint64_t vectorSize = 0;
 			getDataFromBuffer(&vectorSize);
-			const auto dataBytecount = vectorSize * sizeof(T);
-			// Currently not working with very large datas (vectorSize * sizeof(T) overflowing unsigned 64 bit integer)
-			if (dataBytecount > m_bytesRemaining)
+			if (vectorSize > m_bytesRemaining / sizeof(T))
 				throw std::runtime_error("Tried to read over buffer end");
 
+			const size_t dataBytecount = static_cast<size_t>(vectorSize) * sizeof(T);
 			auto elementStartPtr = reinterpret_cast<const T*>(m_current);
 			*outData = std::vector<T>(elementStartPtr, elementStartPtr + vectorSize);
 			m_bytesRemaining -= dataBytecount;
@@ -144,6 +143,8 @@ namespace net
 		{
 			uint64_t vectorSize = 0;
 			getDataFromBuffer(&vectorSize);
+			if (vectorSize > m_bytesRemaining / sizeof(uint64_t)) // sizeof(uint64_t) = Minimum string size (empty)
+				throw std::runtime_error("Tried to read over buffer end");
 			outData->resize(vectorSize);
 			for (auto& elem : *outData) 
 				getDataFromBuffer(&elem);
