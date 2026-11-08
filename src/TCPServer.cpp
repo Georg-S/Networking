@@ -18,20 +18,25 @@ net::TCPServer::~TCPServer()
 
 void net::TCPServer::start()
 {
+	std::scoped_lock lock(m_lifecycleMutex);
+	if (m_thread.joinable())
+		return; // Already running
 	m_thread = std::thread([this]() {m_context.run(); });
 }
 
 void net::TCPServer::stop()
 {
-	std::scoped_lock lock(m_sessionMutex);
+	std::scoped_lock lock(m_lifecycleMutex);
 	m_context.stop();
-
-	for (auto& [id, session] : m_sessions)
-		session->disconnect();
-	m_sessions.clear();
-
 	if (m_thread.joinable())
 		m_thread.join();
+
+	{
+		std::scoped_lock lock(m_sessionMutex);
+		for (auto& [id, session] : m_sessions)
+			session->disconnect();
+		m_sessions.clear();
+	}
 
 	std::cout << "Server stopped" << std::endl;
 }

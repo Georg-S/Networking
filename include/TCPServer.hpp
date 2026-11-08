@@ -2,6 +2,7 @@
 #include <optional>
 #include <memory>
 #include <map>
+#include <mutex>
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/asio/ts/buffer.hpp>
@@ -43,6 +44,8 @@ namespace net
 
 		static constexpr uint32_t SessionStartId = 2;
 		mutable std::mutex m_sessionMutex;
+		// Synchronizes start() / stop() so that the io thread can only be joined once
+		std::mutex m_lifecycleMutex;
 		boost::asio::io_context m_context;
 		std::map<uint32_t, std::shared_ptr<ServerSession>> m_sessions;
 		std::unique_ptr<tcp::acceptor> m_acceptor;

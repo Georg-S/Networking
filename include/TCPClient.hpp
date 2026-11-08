@@ -39,17 +39,25 @@ namespace net
 		void connect();
 		void connectTo(const tcp::resolver::results_type& endpoints);
 		void disconnect();
-		void readHeader();
-		void readBody(std::shared_ptr<Message> unfinishedMessage);
+		void readHeader(std::shared_ptr<Session> session);
+		void readBody(std::shared_ptr<Session> session, std::shared_ptr<Message> unfinishedMessage);
 		void sendMessage();
 		void pushSystemMessage(net::SystemMessages messageType);
+		void stopImpl();
+		// True as long as an async operation started with the given connection ID still belongs to the current connection
+		bool isCurrentConnectionID(uint64_t connectionID) const;
 
 		std::string m_ip;
 		std::thread m_thread;
 		uint16_t m_port;
 		boost::asio::io_context m_context;
+		mutable std::mutex m_sessionMutex;
+		// Synchronizes connectToServer() / stop() so that the io thread can only be joined once
+		std::mutex m_lifecycleMutex;
 		std::shared_ptr<Session> m_session;
 		std::shared_ptr<tcp::socket> m_socket;
+		uint64_t m_connectionID = 0;
+		bool m_writeInFlight = false; // True while an async_write owns the queue front, so the front is written exactly once.
 		ClientMessageQueue m_inMessages;
 		ClientMessageQueue m_outMessages;
 	};

@@ -60,6 +60,12 @@ public:
 		return m_elements.empty();
 	}
 
+	void clear() 
+	{
+		std::scoped_lock lock(m_mut);
+		m_elements.clear();
+	}
+
 private:
 	mutable std::mutex m_mut;
 	std::deque<std::shared_ptr<T>> m_elements;
