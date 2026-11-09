@@ -44,6 +44,8 @@ namespace net
 	{
 	public:
 		DataBuffer() = default;
+		DataBuffer(const DataBuffer&) = delete;
+		DataBuffer& operator=(const DataBuffer&) = delete;
 		DataBuffer(std::vector<std::byte> data) 
 		{
 			m_data = std::move(data);
