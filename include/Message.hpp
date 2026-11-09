@@ -10,14 +10,12 @@
 
 namespace net
 {
-	static bool memcpy_secure(void* dest, size_t destSize, const void* source, size_t size) 
+	static bool memcpy_secure(void* dest, size_t destSize, const void* source, size_t size)
 	{
-		if (destSize < size) 
-		{
-			assert(false);
+		if (!dest || !source || destSize < size)
 			return false;
-		}
-		memcpy(dest, source, size);
+
+		std::memcpy(dest, source, size);
 		return true;
 	}
 
@@ -116,7 +114,9 @@ namespace net
 			if (m_bytesRemaining < dataSize)
 				throw std::runtime_error("Tried to read over buffer end");
 
-			*outData = *reinterpret_cast<const T*>(m_current);
+			if (!outData || !memcpy_secure(outData, dataSize, m_current, dataSize))
+				throw std::runtime_error("Tried to read over buffer end");
+
 			m_bytesRemaining -= dataSize;
 			m_current += dataSize;
 		}
@@ -129,12 +129,14 @@ namespace net
 
 			uint64_t vectorSize = 0;
 			getDataFromBuffer(&vectorSize);
-			if (vectorSize > m_bytesRemaining / sizeof(T))
+			if (!outData || vectorSize > m_bytesRemaining / sizeof(T))
 				throw std::runtime_error("Tried to read over buffer end");
 
 			const size_t dataBytecount = static_cast<size_t>(vectorSize) * sizeof(T);
-			auto elementStartPtr = reinterpret_cast<const T*>(m_current);
-			*outData = std::vector<T>(elementStartPtr, elementStartPtr + vectorSize);
+			outData->assign(vectorSize, T{});
+			if (!memcpy_secure(outData->data(), dataBytecount, m_current, dataBytecount))
+				throw std::runtime_error("Tried to read over buffer end");
+
 			m_bytesRemaining -= dataBytecount;
 			m_current += dataBytecount;
 		}
